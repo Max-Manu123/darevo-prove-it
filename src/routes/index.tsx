@@ -1,10 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Check, Compass, Trophy, Upload } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({ component: Index });
-
-function createFileRoute(path: string) { return ({} as any); }
 
 function Index() {
   const { session } = useAuth();
