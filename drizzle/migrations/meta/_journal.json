@@ -8,6 +8,13 @@
       "when": 1789642697613,
       "tag": "0000_darevo_core_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789642722130,
+      "tag": "0001_proofs_storage_policies",
+      "breakpoints": true
     }
   ]
 }
