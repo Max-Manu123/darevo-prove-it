@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Bell, Compass, Home, LogOut, Plus, Search, Settings, Trophy, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -46,3 +47,10 @@ function MobileLink({ to, icon, label }: { to: "/home"|"/explore"|"/create"|"/ra
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) { return <div className={`rounded-lg border border-border bg-card p-5 ${className}`}>{children}</div>; }
 export function Button({ children, className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) { return <button {...props} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}>{children}</button>; }
 export function SecondaryButton({ children, className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) { return <button {...props} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:bg-accent disabled:opacity-50 ${className}`}>{children}</button>; }
+
+/** Redirects signed-out visitors to /auth from an effect (never during render). */
+export function AuthGate() {
+  const navigate = useNavigate();
+  React.useEffect(() => { navigate({ to: "/auth" }); }, [navigate]);
+  return <div className="p-8 text-sm text-muted-foreground">Redirecting to sign in…</div>;
+}
