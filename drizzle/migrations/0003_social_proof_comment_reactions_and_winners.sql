@@ -24,13 +24,15 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.comment_reactions TO authenticate
 ALTER TABLE public.comment_reactions ENABLE ROW LEVEL SECURITY;
 
 -- ===== OFFICIAL CHALLENGE WINNERS =====
+-- MVP rule: exactly one official winner per challenge.
 CREATE TABLE public.challenge_winners (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   challenge_id UUID NOT NULL REFERENCES public.challenges(id) ON DELETE CASCADE,
   proof_id UUID NOT NULL REFERENCES public.proofs(id) ON DELETE CASCADE,
   selected_by UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (challenge_id, proof_id)
+  UNIQUE (challenge_id),
+  UNIQUE (proof_id)
 );
 CREATE INDEX challenge_winners_challenge_idx ON public.challenge_winners(challenge_id);
 GRANT SELECT, INSERT, DELETE ON public.challenge_winners TO authenticated;
