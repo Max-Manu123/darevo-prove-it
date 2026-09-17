@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { ArrowLeft, Check, Copy, Flag, Heart, Share2, ThumbsDown, Trophy } from "lucide-react";
 import { AppShell, Button, Card, SecondaryButton } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth";
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/challenge/$id")({ component: Challenge })
 
 type Reaction = "like" | "dislike";
 
-function ActionButton({ active, onClick, children, label }: { active?: boolean; onClick: () => void; children: React.ReactNode; label: string }) {
+function ActionButton({ active, onClick, children, label }: { active?: boolean; onClick: () => void; children: ReactNode; label: string }) {
   return <button type="button" onClick={onClick} aria-label={label} className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition ${active ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground"}`}>{children}</button>;
 }
 
@@ -144,7 +144,7 @@ function Challenge() {
           <div className="mt-4 space-y-3">
             {proofs.map((p) => <Card key={p.id}>
               <div className="flex justify-between text-xs text-muted-foreground"><span>{p.profiles?.display_name || p.profiles?.username}</span><span>{new Date(p.created_at).toLocaleDateString()}</span></div>
-              {winnerIds.includes(p.id) && <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs font-semibold"><Trophy size={13} /> Winner</div>}
+              {winnerIds.includes(p.id) && <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs font-semibold"><Trophy size={13} /> Official winner</div>}
               <p className="mt-3 text-sm">{p.description || p.text_content || p.numeric_value || p.proof_type}</p>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <ActionButton label="Like proof" active={p.myReaction === "like"} onClick={() => void reactToProof(p.id, "like")}><Heart size={14} /> {p.likes}</ActionButton>
