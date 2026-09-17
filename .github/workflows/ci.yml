@@ -1,7 +1,9 @@
 name: CI
 on:
   push:
-    branches: ["feature/mvp-screens"]
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 jobs:
   verify:
     runs-on: ubuntu-latest
