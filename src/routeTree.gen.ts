@@ -23,7 +23,7 @@ import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ChallengeIdRouteImport } from './routes/challenge.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
-import { Route as ChallengeIdProveRouteImport } from './routes/challenge.$id.prove'
+import { Route as ChallengeIdProveRouteImport } from './routes/challenge_.$id.prove'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -96,9 +96,9 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChallengeIdProveRoute = ChallengeIdProveRouteImport.update({
-  id: '/prove',
-  path: '/prove',
-  getParentRoute: () => ChallengeIdRoute,
+  id: '/challenge_/$id/prove',
+  path: '/challenge/$id/prove',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -114,7 +114,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/rankings': typeof RankingsRoute
   '/settings': typeof SettingsRoute
-  '/challenge/$id': typeof ChallengeIdRouteWithChildren
+  '/challenge/$id': typeof ChallengeIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/challenge/$id/prove': typeof ChallengeIdProveRoute
 }
@@ -131,7 +131,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/rankings': typeof RankingsRoute
   '/settings': typeof SettingsRoute
-  '/challenge/$id': typeof ChallengeIdRouteWithChildren
+  '/challenge/$id': typeof ChallengeIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/challenge/$id/prove': typeof ChallengeIdProveRoute
 }
@@ -149,9 +149,9 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/rankings': typeof RankingsRoute
   '/settings': typeof SettingsRoute
-  '/challenge/$id': typeof ChallengeIdRouteWithChildren
+  '/challenge/$id': typeof ChallengeIdRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/challenge/$id/prove': typeof ChallengeIdProveRoute
+  '/challenge_/$id/prove': typeof ChallengeIdProveRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -204,7 +204,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/challenge/$id'
     | '/invite/$token'
-    | '/challenge/$id/prove'
+    | '/challenge_/$id/prove'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -220,8 +220,9 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RankingsRoute: typeof RankingsRoute
   SettingsRoute: typeof SettingsRoute
-  ChallengeIdRoute: typeof ChallengeIdRouteWithChildren
+  ChallengeIdRoute: typeof ChallengeIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  ChallengeIdProveRoute: typeof ChallengeIdProveRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -324,27 +325,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/challenge/$id/prove': {
-      id: '/challenge/$id/prove'
-      path: '/prove'
+    '/challenge_/$id/prove': {
+      id: '/challenge_/$id/prove'
+      path: '/challenge/$id/prove'
       fullPath: '/challenge/$id/prove'
       preLoaderRoute: typeof ChallengeIdProveRouteImport
-      parentRoute: typeof ChallengeIdRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface ChallengeIdRouteChildren {
-  ChallengeIdProveRoute: typeof ChallengeIdProveRoute
-}
-
-const ChallengeIdRouteChildren: ChallengeIdRouteChildren = {
-  ChallengeIdProveRoute: ChallengeIdProveRoute,
-}
-
-const ChallengeIdRouteWithChildren = ChallengeIdRoute._addFileChildren(
-  ChallengeIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -359,8 +348,9 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RankingsRoute: RankingsRoute,
   SettingsRoute: SettingsRoute,
-  ChallengeIdRoute: ChallengeIdRouteWithChildren,
+  ChallengeIdRoute: ChallengeIdRoute,
   InviteTokenRoute: InviteTokenRoute,
+  ChallengeIdProveRoute: ChallengeIdProveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
