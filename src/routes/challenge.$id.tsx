@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { FormEvent, ReactNode, useEffect, useState } from "react";
-import { ArrowLeft, Check, Copy, Flag, Heart, Share2, ThumbsDown, Trophy } from "lucide-react";
+import { ArrowLeft, Check, Copy, Flag, Heart, Share2, ThumbsDown, Trophy, X } from "lucide-react";
 import { AppShell, Button, Card, SecondaryButton } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,17 @@ import { isEnded } from "@/lib/darevo";
 export const Route = createFileRoute("/challenge/$id")({ component: Challenge });
 
 type Reaction = "like" | "dislike";
+type ReportTarget = { type: "proof" | "comment"; id: string } | null;
+type ReportReason = "spam" | "fake_proof" | "harassment" | "inappropriate" | "violence" | "other";
+
+const reportReasons: { value: ReportReason; label: string }[] = [
+  { value: "spam", label: "Spam or unwanted content" },
+  { value: "fake_proof", label: "Fake or misleading proof" },
+  { value: "harassment", label: "Harassment or bullying" },
+  { value: "inappropriate", label: "Inappropriate content" },
+  { value: "violence", label: "Violence or dangerous content" },
+  { value: "other", label: "Other" },
+];
 
 function ActionButton({ active, onClick, children, label }: { active?: boolean; onClick: () => void; children: ReactNode; label: string }) {
   return <button type="button" onClick={onClick} aria-label={label} className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition ${active ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground"}`}>{children}</button>;
@@ -25,6 +36,10 @@ function Challenge() {
   const [winnerIds, setWinnerIds] = useState<string[]>([]);
   const [comment, setComment] = useState("");
   const [message, setMessage] = useState("");
+  const [reportTarget, setReportTarget] = useState<ReportTarget>(null);
+  const [reportReason, setReportReason] = useState<ReportReason>("other");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const load = async () => {
     const { data, error } = await supabase.from("challenges").select("*, profiles:creator_id(username,display_name,avatar_url), challenge_proof_types(proof_type)").eq("id", id).maybeSingle();
@@ -87,14 +102,42 @@ function Challenge() {
     if (error) setMessage(error.message); else void load();
   };
 
-  const report = async (targetType: "proof" | "comment", targetId: string) => {
+  const openReport = (targetType: "proof" | "comment", targetId: string) => {
     if (!requireUser()) return;
-    const reason = window.prompt("Why are you reporting this? (spam, fake_proof, harassment, inappropriate, violence, other)", "other")?.trim();
-    if (!reason) return;
-    const allowed = ["spam", "fake_proof", "harassment", "inappropriate", "violence", "other"];
-    const normalized = allowed.includes(reason) ? reason : "other";
-    const { error } = await supabase.from("reports").insert({ reporter_id: user!.id, target_type: targetType, target_id: targetId, reason: normalized });
-    setMessage(error ? error.code === "23505" ? "You already reported this." : error.message : "Report submitted.");
+    setMessage("");
+    setReportTarget({ type: targetType, id: targetId });
+    setReportReason("other");
+    setReportDescription("");
+  };
+
+  const closeReport = () => {
+    if (reportSubmitting) return;
+    setReportTarget(null);
+    setReportDescription("");
+    setReportReason("other");
+  };
+
+  const submitReport = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!user || !reportTarget || reportSubmitting) return;
+    setReportSubmitting(true);
+    setMessage("");
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: user.id,
+      target_type: reportTarget.type,
+      target_id: reportTarget.id,
+      reason: reportReason,
+      description: reportDescription.trim() || null,
+    });
+    setReportSubmitting(false);
+    if (error) {
+      setMessage(error.code === "23505" ? "You already reported this." : error.message);
+      return;
+    }
+    setReportTarget(null);
+    setReportDescription("");
+    setReportReason("other");
+    setMessage("Report submitted. Thank you for helping keep Darevo safe.");
   };
 
   const toggleWinner = async (proofId: string) => {
@@ -149,7 +192,7 @@ function Challenge() {
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <ActionButton label="Like proof" active={p.myReaction === "like"} onClick={() => void reactToProof(p.id, "like")}><Heart size={14} /> {p.likes}</ActionButton>
                 <ActionButton label="Dislike proof" active={p.myReaction === "dislike"} onClick={() => void reactToProof(p.id, "dislike")}><ThumbsDown size={14} /> {p.dislikes}</ActionButton>
-                <ActionButton label="Report proof" onClick={() => void report("proof", p.id)}><Flag size={14} /> Report</ActionButton>
+                <ActionButton label="Report proof" onClick={() => openReport("proof", p.id)}><Flag size={14} /> Report</ActionButton>
                 {user && challenge.creator_id === user.id && <ActionButton label={winnerIds.includes(p.id) ? "Remove winner" : "Mark as winner"} active={winnerIds.includes(p.id)} onClick={() => void toggleWinner(p.id)}><Trophy size={14} /> {winnerIds.includes(p.id) ? "Winner" : "Mark winner"}</ActionButton>}
               </div>
             </Card>)}
@@ -163,7 +206,7 @@ function Challenge() {
           <div className="mt-4 space-y-2">
             {comments.map(c => <div key={c.id} className="border-b border-border py-3">
               <p className="text-sm font-semibold">{c.profiles?.display_name || c.profiles?.username}</p><p className="mt-1 text-sm text-muted-foreground">{c.content}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2"><ActionButton label="Like comment" active={c.myReaction === "like"} onClick={() => void reactToComment(c.id, "like")}><Heart size={13} /> {c.likes}</ActionButton><ActionButton label="Dislike comment" active={c.myReaction === "dislike"} onClick={() => void reactToComment(c.id, "dislike")}><ThumbsDown size={13} /> {c.dislikes}</ActionButton><ActionButton label="Report comment" onClick={() => void report("comment", c.id)}><Flag size={13} /> Report</ActionButton></div>
+              <div className="mt-2 flex flex-wrap items-center gap-2"><ActionButton label="Like comment" active={c.myReaction === "like"} onClick={() => void reactToComment(c.id, "like")}><Heart size={13} /> {c.likes}</ActionButton><ActionButton label="Dislike comment" active={c.myReaction === "dislike"} onClick={() => void reactToComment(c.id, "dislike")}><ThumbsDown size={13} /> {c.dislikes}</ActionButton><ActionButton label="Report comment" onClick={() => openReport("comment", c.id)}><Flag size={13} /> Report</ActionButton></div>
             </div>)}
           </div>
         </section>
@@ -172,5 +215,31 @@ function Challenge() {
 
       <aside><Card className="sticky top-24"><p className="text-sm text-muted-foreground">Created by {challenge.profiles?.display_name || challenge.profiles?.username || "Darevo"}</p>{challenge.deadline && <p className="mt-3 text-sm">Deadline: {new Date(challenge.deadline).toLocaleString()}</p>}<div className="mt-6 grid gap-2">{participation ? <div className="flex items-center gap-2 rounded-md border border-border p-3 text-sm"><Check size={17} /> You're participating</div> : <Button onClick={join} disabled={isEnded(challenge.deadline)}>Join challenge</Button>}<SecondaryButton onClick={share}><Share2 size={16} /> Share</SecondaryButton><SecondaryButton onClick={copy}><Copy size={16} /> Copy link</SecondaryButton></div></Card></aside>
     </div>
+
+    {reportTarget && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) closeReport(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="report-title" className="w-full max-w-lg rounded-lg border border-border bg-background p-5 shadow-xl">
+        <div className="flex items-start justify-between gap-4">
+          <div><h2 id="report-title" className="text-lg font-bold">Report {reportTarget.type}</h2><p className="mt-1 text-sm text-muted-foreground">Tell us what is wrong with this content.</p></div>
+          <button type="button" onClick={closeReport} disabled={reportSubmitting} aria-label="Close report dialog" className="rounded-md p-2 text-muted-foreground hover:text-foreground"><X size={18} /></button>
+        </div>
+        <form onSubmit={submitReport} className="mt-5 space-y-5">
+          <div>
+            <label htmlFor="report-reason" className="text-sm font-medium">Reason</label>
+            <select id="report-reason" value={reportReason} onChange={(e) => setReportReason(e.target.value as ReportReason)} className="mt-2 h-11 w-full rounded-md border border-input bg-background px-3 text-sm">
+              {reportReasons.map((reason) => <option key={reason.value} value={reason.value}>{reason.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="report-description" className="text-sm font-medium">Additional details <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <textarea id="report-description" value={reportDescription} onChange={(e) => setReportDescription(e.target.value)} maxLength={1000} rows={5} placeholder="Explain what happened or why this should be reviewed…" className="mt-2 w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-foreground" />
+            <p className="mt-1 text-right text-xs text-muted-foreground">{reportDescription.length}/1000</p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <SecondaryButton type="button" onClick={closeReport} disabled={reportSubmitting}>Cancel</SecondaryButton>
+            <Button type="submit" disabled={reportSubmitting}>{reportSubmitting ? "Submitting…" : "Submit report"}</Button>
+          </div>
+        </form>
+      </div>
+    </div>}
   </AppShell>;
 }
